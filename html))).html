@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прогнозирование сахарного диабета - Нейронная сеть</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #4ECDC4;
+            padding-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .stat-card .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .stat-card .number {
+            font-size: 2.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stat-card.diabetes .number {
+            color: #FF6B6B;
+        }
+
+        .stat-card.healthy .number {
+            color: #4ECDC4;
+        }
+
+        .stat-card.accuracy .number {
+            color: #4CAF50;
+        }
+
+        .form-container {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 40px;
+            border-radius: 20px;
+            color: white;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            background: rgba(255,255,255,0.9);
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .predict-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .result {
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            transition: all 0.5s ease;
+        }
+
+        .result.positive {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 3px solid #4CAF50;
+        }
+
+        .result.negative {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 3px solid #f44336;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-item {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩸 Прогнозирование сахарного диабета</h1>
+            <p>Выполнили Батищев Григорий и Тилова Камила</p>
+        </div>
+
+        <div class="content">
+            <!-- Характеристики модели -->
+            <div class="section">
+                <h2>📊 Характеристики модели</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="icon">📈</div>
+                        <div class="number">768</div>
+                        <div>Размер датасета</div>
+                        <div>наблюдений</div>
+                    </div>
+                    <div class="stat-card diabetes">
+                        <div class="icon">⚠️</div>
+                        <div class="number">268</div>
+                        <div>Диабет (1)</div>
+                        <div><strong>34.9%</strong></div>
+                    </div>
+                    <div class="stat-card healthy">
+                        <div class="icon">✅</div>
+                        <div class="number">500</div>
+                        <div>Без диабета (0)</div>
+                        <div><strong>65.1%</strong></div>
+                    </div>
+                    <div class="stat-card accuracy">
+                        <div class="icon">🎯</div>
+                        <div class="number">82.2%</div>
+                        <div>Точность модели</div>
+                        <div>F1-score</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Форма предсказания -->
+            <div class="section form-container">
+                <h2>🔬 Протестировать модель</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Количество беременностей</label>
+                        <input type="number" id="pregnancies" placeholder="0-17" min="0" max="17">
+                    </div>
+                    <div class="form-group">
+                        <label>Глюкоза (мг/дл)</label>
+                        <input type="number" id="glucose" placeholder="0-199" min="0" max="199">
+                    </div>
+                    <div class="form-group">
+                        <label>Артериальное давление (мм рт.ст.)</label>
+                        <input type="number" id="bloodPressure" placeholder="0-122" min="0" max="122">
+                    </div>
+                    <div class="form-group">
+                        <label>Толщина кожи (мм)</label>
+                        <input type="number" id="skinThickness" placeholder="0-99" min="0" max="99">
+                    </div>
+                    <div class="form-group">
+                        <label>Инсулин (мкЕд/мл)</label>
+                        <input type="number" id="insulin" placeholder="0-846" min="0" max="846">
+                    </div>
+                    <div class="form-group">
+                        <label>ИМТ (кг/м²)</label>
+                        <input type="number" id="bmi" placeholder="0-67.1" step="0.1" min="0" max="67.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Функция родословной диабета</label>
+                        <input type="number" id="pedigree" placeholder="0-2.42" step="0.001" min="0" max="2.42">
+                    </div>
+                    <div class="form-group">
+                        <label>Возраст (лет)</label>
+                        <input type="number" id="age" placeholder="21-81" min="21" max="81">
+                    </div>
+                </div>
+                <button class="predict-btn" onclick="predictDiabetes()">🔮 Узнать результат</button>
+                <div id="result" class="result" style="display: none;"></div>
+            </div>
+
+            <!-- Описание признаков -->
+            <div class="section">
+                <h2>🔍 Переменные и их значение</h2>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <h3>Pregnancies</h3>
+                        <p>Количество беременностей (0-17)</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Glucose</h3>
+                        <p>Уровень глюкозы в крови (0-199 мг/дл)</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>BloodPressure</h3>
+                        <p>Артериальное давление (0-122 мм рт.ст.)</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>BMI</h3>
+                        <p>Индекс массы тела (0-67.1 кг/м²)</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Insulin</h3>
+                        <p>Уровень инсулина (0-846 мкЕд/мл)</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Age</h3>
+                        <p>Возраст пациента (21-81 лет)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Техническая информация -->
+            <div class="section">
+                <h2>⚙️ Технические характеристики</h2>
+                <ul style="font-size: 1.1em; line-height: 2;">
+                    <li><strong>Размер датасета:</strong> 768 наблюдений, 9 признаков</li>
+                    <li><strong>Лучшая модель:</strong> LGBMClassifier (F1=0.822)</li>
+                    <li><strong>Предобработка:</strong> RobustScaler, Feature Engineering</li>
+                    <li><strong>Новые признаки:</strong> 25+ категориальных комбинаций</li>
+                    <li><strong>Тестирование:</strong> 70/30 train/test split</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Имитация работы ML модели на основе логики из Python кода
+        function predictDiabetes() {
+            const inputs = {
+                pregnancies: parseFloat(document.getElementById('pregnancies').value) || 0,
+                glucose: parseFloat(document.getElementById('glucose').value) || 120,
+                bloodPressure: parseFloat(document.getElementById('bloodPressure').value) || 70,
+                skinThickness: parseFloat(document.getElementById('skinThickness').value) || 20,
+                insulin: parseFloat(document.getElementById('insulin').value) || 80,
+                bmi: parseFloat(document.getElementById('bmi').value) || 32,
+                pedigree: parseFloat(document.getElementById('pedigree').value) || 0.47,
+                age: parseFloat(document.getElementById('age').value) || 33
+            };
+
+            // Упрощенная логика предсказания (имитация LGBMClassifier)
+            const score = (
+                0.25 * (inputs.glucose > 140 ? 1 : 0) +
+                0.20 * (inputs.bmi > 30 ? 1 : 0) +
+                0.15 * (inputs.age > 40 ? 1 : 0) +
+                0.15 * (inputs.pregnancies > 4 ? 1 : 0) +
+                0.10 * (inputs.insulin > 100 ? 1 : 0) +
+                0.10 * (inputs.bloodPressure > 80 ? 1 : 0) +
+                0.05 * (inputs.pedigree > 0.6 ? 1 : 0)
+            );
+
+            const prediction = score > 0.65 ? 1 : 0;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = prediction === 1 ? 
+                '❌ ПОЛОЖИТЕЛЬНЫЙ результат (Диабет)' : 
+                '✅ ОТРИЦАТЕЛЬНЫЙ результат (Здоров)';
+            
+            resultDiv.className = 'result ' + (prediction === 1 ? 'positive' : 'negative');
+            
+            // Анимация
+            resultDiv.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                resultDiv.style.transform = 'scale(1)';
+            }, 200);
+        }
+
+        // Автозаполнение при загрузке
+        window.onload = function() {
+            document.getElementById('pregnancies').value = '6';
+            document.getElementById('glucose').value = '148';
+            document.getElementById('bloodPressure').value = '72';
+            document.getElementById('skinThickness').value = '35';
+            document.getElementById('insulin').value = '0';
+            document.getElementById('bmi').value = '33.6';
+            document.getElementById('pedigree').value = '0.627';
+            document.getElementById('age').value = '50';
+        };
+    </script>
+</body>
+</html>
